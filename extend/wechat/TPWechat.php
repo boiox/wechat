@@ -6,7 +6,7 @@
  * Time: 18:16
  */
 
-namespace ectend\wechat;
+namespace extend\Wechat;
 
 
 class TPWechat extends Wechat

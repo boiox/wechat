@@ -3,7 +3,7 @@
  *
  */
 
-namespace ectend\wechat;
+namespace extend\Wechat;
 
 class Wechat
 {
@@ -11,31 +11,31 @@ class Wechat
     const AUTH_URL = '/token?grant_type=client_credential&';                    //获取access_token地址
 
 
-    private $token;
+    private $appid;                     //appid
+    private $appsecret;                 //appsecret
     private $access_token;
     private $errCode;                   //错误码
     private $errMsg;                    //错误信息
     public function __construct($options)
     {
-        $this->token = isset($options['token']) ? $options['token'] : '';
+        $this->appid    = isset($options['appid']) ? $options['appid'] : '';
+        $this->appsecret   = isset($options['appsecret']) ? $options['appsecret'] : '';
     }
 
 
     /**
      * 获取access_token
-     * @param string $appid
-     * @param string $secret
      * @return bool
      */
-    public function getToken($appid='',$secret='')
+    public function getToken()
     {
-        $cache_name = 'access_token_' . $appid;
+        $cache_name = 'access_token_' . $this->appid;
         if($cache = $this->getCache($cache_name)){
             $this->access_token = $cache;
             return $cache;
         }
 
-        $result = $this->http_get(self::API_BASE_URL.self::AUTH_URL."appid=".$appid."&secret=".$secret);
+        $result = $this->http_get(self::API_BASE_URL . self::AUTH_URL . "appid=" . $this->appid . "&secret=" . $this->appsecret);
         if($result){
             $json = json_decode($result);
             if($json){
