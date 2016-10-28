@@ -14,7 +14,9 @@ class Wechat
     const OAUTH_AUTHORIZE_URL = '/connect/oauth2/authorize?';                   //oauth2授权地址
 
     const OAUTH_TOKEN_URL = '/sns/oauth2/access_token?';                        //获取oauth2认证的access_token地址
-
+    const OAUTH_USERINFO_URL = '/sns/userinfo?';                                //获取oauth2认证的用户信息
+    const OAUTH_REFRESHTOKEN_URL = '/sns/oauth2/refresh_token?';                //刷新oauth2认证的access_token地址
+    const OAUTH_AUTHTOKEN_URL = '/sns/auth?';                                   //验证oauth2的access_token的有效性
 
     private $appid;                     //appid
     private $appsecret;                 //appsecret
@@ -45,9 +47,9 @@ class Wechat
         if($result){
             $json = json_decode($result);
             if($json){
-                if($json['errcode']){
+                if(isset($json['errcode'])){
                     $this->errCode = $json['errcode'];
-                    $this->errMsg = $json['errmsg'];
+                    $this->errMsg  = $json['errmsg'];
                     return false;
                 }
 
@@ -162,7 +164,7 @@ class Wechat
      * 授权请求地址，获得code
      * @param $callback                 回调地址
      * @param string $state             自定义参数值
-     * @param string $scope             拉去授权方式 snsapi_base => 不弹出授权页面   snsapi_userinfo => 弹出授权页面
+     * @param string $scope             拉去授权方式 snsapi_base => 不弹出授权页面（静默拉取）   snsapi_userinfo => 弹出授权页面
      * @return string
      */
     public function getOauthUrl($callback,$state='',$scope='snsapi_base')
@@ -171,7 +173,7 @@ class Wechat
     }
 
     /**
-     * 获取Oauth的AccessToken
+     * 获取Oauth的AccessToken（默认拉取用户的openid）
      * @return bool
      */
     public function getOauthAccessToken()
@@ -183,14 +185,87 @@ class Wechat
 
         if($result){
             $json = json_decode($result);
-            if(!$json || !empty($json('errcode'))){
+            if(isset($json['errcode'])){
                 $this->errCode = $json('errcode');
-                $this->errMsg = $json('errmsg');
+                $this->errMsg  = $json('errmsg');
                 return false;
             }
 
             $this->user_token = $json['access_token'];
             return $json;
+        }
+        return false;
+    }
+
+    /**
+     * 获取Oauth的用户信息
+     * @param $access_token         //该access_token 是 Oauth2的access_token (getOauthAccessToken方法中获取的)
+     * @param $openid
+     * @return bool
+     */
+    public function getOauthUserInfo($access_token,$openid)
+    {
+        if(!$openid || !$access_token) return false;
+
+        $result = http_get(self::API_BASE_URL_PREFIX . self::OAUTH_USERINFO_URL . 'access_token=' . $access_token . '&openid=' . $openid . '&lang=zh_CN');
+
+        if($result){
+            $json = json_decode($result);
+            if(isset($json['errcode'])){
+                $this->errCode = $json('errcode');
+                $this->errMsg  = $json('errmsg');
+                return false;
+            }
+
+            return $json;
+        }
+        return false;
+    }
+
+    /**
+     * 使用refresh_token 刷新 oauth的access_token
+     * @param $refresh_token             //从getOauthAccessToken接口中获得
+     * @return bool
+     */
+    public function refreshOauthAccessToken($refresh_token)
+    {
+        if(!$refresh_token) return false;
+        $result = http_get(self::API_BASE_URL_PREFIX . self::OAUTH_REFRESHTOKEN_URL . 'appid=' . $this->appid . '&grant_type=refresh_token' . '&refresh_token=' . $refresh_token);
+
+        if($result){
+            $json = json_decode($result);
+            if(isset($json['errcode'])){
+                $this->errCode = $json('errcode');
+                $this->errMsg  = $json('errmsg');
+                return false;
+            }
+
+            $this->user_token = $json['access_token'];
+            return $json;
+        }
+        return false;
+    }
+
+    /**
+     * 验证oauth的access_token的有效性
+     * @param $access_token
+     * @param $openid
+     * @return bool
+     */
+    public function authOauthAccessToken($access_token,$openid)
+    {
+        if(!$access_token || !$openid) return false;
+
+        $result = http_get(self::API_BASE_URL_PREFIX . self::OAUTH_AUTHTOKEN_URL . 'access_token=' . $access_token .'&openid=' . $openid);
+
+        if($result){
+            $json = json_decode($result);
+            if(isset($json['errcode'])){
+                $this->errCode = $json['errcode'];
+                $this->errMsg  = $json['errmsg'];
+                return false;
+
+            }elseif($json['errmsg'] == 'ok') return true;
         }
         return false;
     }
