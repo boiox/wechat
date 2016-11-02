@@ -10,45 +10,57 @@ namespace app\wechat\controller;
 
 use think\Controller;
 
-use extend\Wechat;
+use org\wechat\TPWechat;
 
 class Index extends Controller
 {
+    private $wechat;
     public function __construct()
     {
         parent::__construct();
+
+        $options['token'] = 'wechat';
+        $options['appid'] = 'wxdcc677f0fab756ed';
+        $options['appsecret'] = '28e0f7453abe4872ea0a191f57795224';
+        $this->wechat = new TPWechat($options);
     }
 
     public function index()
     {
-        //$this->token_verify();                  //验证token
-
-//        $options['appid'] = "wxdcc677f0fab756ed";
-//        $options['appsecret'] = "28e0f7453abe4872ea0a191f57795224";
-//        $wechat = new TPWechat($options);
-
-        
-
+        //dump($this->wechat->getCache('w_r'));exit;
+        $this->wechat->receive();
+        //$this->reply();
     }
 
-    protected function token_verify()
+    private function reply()
     {
-        $echoStr = input('echostr');
-        $signature = input("signature");
-        $timestamp = input("timestamp");
-        $nonce = input("nonce");
-
-        $token = 'wechat';
-        $tmpArr = array($token, $timestamp, $nonce);
-        // use SORT_STRING rule
-        sort($tmpArr, SORT_STRING);
-        $tmpStr = implode( $tmpArr );
-        $tmpStr = sha1( $tmpStr );
-
-        if( $tmpStr == $signature ){
-            return $echoStr;
-        }else{
-            return false;
+        switch($this->wechat->getMsgType())
+        {
+            case 'event':
+                $this->replyEvent();
         }
     }
+
+
+    private function replyEvent()
+    {
+        switch($this->wechat->getEvent())
+        {
+            case 'subscribe':
+                $this->subscribe();
+        }
+    }
+
+    private function subscribe()
+    {
+        $xml = '<xml>
+<ToUserName><![CDATA[%s]]></ToUserName>
+<FromUserName><![CDATA[%s]]></FromUserName>
+<CreateTime>%s</CreateTime>
+<MsgType><![CDATA[text]]></MsgType>
+<Content><![CDATA[%s]]></Content>
+</xml>';
+        return sprintf($xml,$this->wechat->getFromUser(),$this->wechat->getToUser(),time(),'欢迎光临这里哦！！！');
+    }
+
 }

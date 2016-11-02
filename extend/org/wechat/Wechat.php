@@ -3,7 +3,7 @@
  *
  */
 
-namespace extend\Wechat;
+namespace org\wechat;
 
 class Wechat
 {
@@ -18,18 +18,117 @@ class Wechat
     const OAUTH_REFRESHTOKEN_URL = '/sns/oauth2/refresh_token?';                //刷新oauth2认证的access_token地址
     const OAUTH_AUTHTOKEN_URL = '/sns/auth?';                                   //验证oauth2的access_token的有效性
 
+    private $token;                     //自定义token
     private $appid;                     //appid
     private $appsecret;                 //appsecret
     private $access_token;
     private $user_token;                //通过code获取的access_token(和基础的access_token不是一回事)
+
+    private $encrypt_type;              //加密类型
     private $errCode;                   //错误码
     private $errMsg;                    //错误信息
+    private $receive_data;              //接收到的数据
+
     public function __construct($options)
     {
-        $this->appid    = isset($options['appid']) ? $options['appid'] : '';
-        $this->appsecret   = isset($options['appsecret']) ? $options['appsecret'] : '';
+        $this->token        = isset($options['token']) ? $options['token'] : '';
+        $this->appid        = isset($options['appid']) ? $options['appid'] : '';
+        $this->appsecret    = isset($options['appsecret']) ? $options['appsecret'] : '';
     }
 
+    /**
+     * 统一接收入口
+     */
+    public function receive()
+    {
+        if(isset($_GET['echostr'])){
+            if($this->checkSignature()){
+                echo $_GET['echostr'];
+                exit;
+            }
+        }else{
+            if($_SERVER['REQUEST_METHOD'] == "POST"){
+                if(!$this->checkSignature()) die('Invalid server');     //验证服务器是否有效
+                $postStr = file_get_contents("php://input");
+                $this->encrypt_type = isset($_GET["encrypt_type"]) ? $_GET["encrypt_type"]: '';
+                $this->setCache('w_r',$this->encrypt_type,7200);
+                if($this->encrypt_type == 'aes'){
+                    //$encryptArray = (array)simplexml_load_string($postStr, 'SimpleXMLElement', LIBXML_NOCDATA);
+
+
+                }else{
+                    $this->receive_data = (array)simplexml_load_string($postStr, 'SimpleXMLElement', LIBXML_NOCDATA);
+                    if($this->receive_data['MsgType'] == 'event'){
+                        if($this->receive_data['Event'] == 'subscribe'){
+                            $xml = "<xml><ToUserName><![CDATA[%s]]></ToUserName><FromUserName><![CDATA[%s]]></FromUserName><CreateTime>%s</CreateTime><MsgType><![CDATA[text]]></MsgType><Content><![CDATA[%s]]></Content></xml>";
+                            echo sprintf($xml,$this->receive_data['FromUserName'],$this->receive_data['ToUserName'],time(),'欢迎光临这里哦！！！');
+                        }
+                    }
+                }
+
+            }
+        }
+
+
+    }
+
+    public function getMsgType()
+    {
+        if(isset($this->receive_data['MsgType'])){
+            return $this->receive_data['MsgType'];
+        }else{
+            return false;
+        }
+    }
+
+    public function getEvent()
+    {
+        if(isset($this->receive_data['Event'])){
+            return $this->receive_data['Event'];
+        }else{
+            return false;
+        }
+    }
+
+    public function getFromUser()
+    {
+        if(isset($this->receive_data['FromUserName'])){
+            return $this->receive_data['FromUserName'];
+        }else{
+            return false;
+        }
+    }
+
+    public function getToUser()
+    {
+        if(isset($this->receive_data['ToUserName'])){
+            return $this->receive_data['ToUserName'];
+        }else{
+            return false;
+        }
+    }
+
+    /**
+     * 验证服务器
+     * @return bool
+     */
+    private function checkSignature()
+    {
+        $signature = $_GET["signature"];
+        $timestamp = $_GET["timestamp"];
+        $nonce     = $_GET["nonce"];
+
+        $tmpArr = array($this->token, $timestamp, $nonce);
+        sort($tmpArr, SORT_STRING);
+        $tmpStr = implode( $tmpArr );
+        $tmpStr = sha1( $tmpStr );
+
+        if( $tmpStr == $signature ){
+            return true;
+        }else{
+            return false;
+        }
+    }
 
     /**
      * 获取access_token

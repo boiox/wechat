@@ -6,7 +6,7 @@
  * Time: 18:16
  */
 
-namespace extend\Wechat;
+namespace org\wechat;
 
 
 class TPWechat extends Wechat
@@ -19,7 +19,7 @@ class TPWechat extends Wechat
      * @param $expires
      * @return mixed
      */
-    protected function setCache($cache_name,$value,$expires)
+    public function setCache($cache_name,$value,$expires)
     {
         return cache($cache_name,$value,$expires);
     }
@@ -28,7 +28,7 @@ class TPWechat extends Wechat
      * @param $cache_name
      * @return mixed
      */
-    protected function getCache($cache_name)
+    public function getCache($cache_name)
     {
        return cache($cache_name);
     }
@@ -37,7 +37,7 @@ class TPWechat extends Wechat
      * @param $cache_name
      * @return mixed
      */
-    protected function removeCache($cache_name)
+    public function removeCache($cache_name)
     {
         return cache($cache_name,null);
     }

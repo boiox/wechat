@@ -5,6 +5,6 @@ return [
         'name' => '\w+',
     ],
 
-    'wechat/:echostr/:signature/:timestamp/:nonce'       => ['wechat/Index/index',['method'=>'get']],
+    'wechat/[:echostr]/:signature/:timestamp/:nonce'       => ['wechat/Index/index',['method'=>'get']],
 
 ];
