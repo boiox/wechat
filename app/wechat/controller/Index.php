@@ -10,11 +10,13 @@ namespace app\wechat\controller;
 
 use think\Controller;
 
-use org\wechat\TPWechat;
+use org\wechat_sdk\TPWechat;
 
 class Index extends Controller
 {
     private $wechat;
+    private $receive;
+    private $type;
     public function __construct()
     {
         parent::__construct();
@@ -22,45 +24,24 @@ class Index extends Controller
         $options['token'] = 'wechat';
         $options['appid'] = 'wxdcc677f0fab756ed';
         $options['appsecret'] = '28e0f7453abe4872ea0a191f57795224';
+        $options['debug'] = true;
         $this->wechat = new TPWechat($options);
     }
 
     public function index()
     {
-        //dump($this->wechat->getCache('w_r'));exit;
-        $this->wechat->receive();
-        //$this->reply();
-    }
+        $this->receive = $this->wechat->getRev()->getRevData();
 
-    private function reply()
-    {
-        switch($this->wechat->getMsgType())
+        $this->type = $this->receive['MsgType'];
+        switch($this->type)
         {
-            case 'event':
-                $this->replyEvent();
+            case TPWechat::MSGTYPE_EVENT:
+                action('Event/index');
+                exit;
+                break;
+            default:
+                $this->wechat->text("help info")->reply();
         }
-    }
-
-
-    private function replyEvent()
-    {
-        switch($this->wechat->getEvent())
-        {
-            case 'subscribe':
-                $this->subscribe();
-        }
-    }
-
-    private function subscribe()
-    {
-        $xml = '<xml>
-<ToUserName><![CDATA[%s]]></ToUserName>
-<FromUserName><![CDATA[%s]]></FromUserName>
-<CreateTime>%s</CreateTime>
-<MsgType><![CDATA[text]]></MsgType>
-<Content><![CDATA[%s]]></Content>
-</xml>';
-        return sprintf($xml,$this->wechat->getFromUser(),$this->wechat->getToUser(),time(),'欢迎光临这里哦！！！');
     }
 
 }
